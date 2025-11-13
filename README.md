@@ -1,2 +1,1 @@
-# PRGG20
-menampilkan nilai pga
+https://krishnaduta.github.io/komgeos_k5/

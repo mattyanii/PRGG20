@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Peta PGA + Bandara + Sesar + Sermo</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.css" rel="stylesheet" />
+  <style>
+    body { margin:0; padding:0; }
+    #map { position:absolute; top:0; bottom:0; width:100%; }
+    .menu {
+      position:absolute;
+      background:white;
+      padding:10px;
+      font-family:sans-serif;
+      z-index:1;
+      top:10px;
+      left:10px;
+      border-radius:8px;
+      box-shadow:0 1px 5px rgba(0,0,0,0.3);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="menu">
+  <label><input type="checkbox" id="togglePGA" checked /> PGA</label><br>
+  <label><input type="checkbox" id="toggleBandara" checked /> Bandara</label><br>
+  <label><input type="checkbox" id="toggleOpak" checked /> Sesar Opak</label><br>
+  <label><input type="checkbox" id="toggleSermo" checked /> Waduk Sermo</label>
+</div>
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoibmFkaWFzYWZhYXVyb3JhIiwiYSI6ImNseDJ3NGEwbzBybXgyaW9pdXpiNzhoNjEifQ.App12NjY_vjxookVmPAtLg';
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/light-v11',
+  center: [110.3, -7.8],
+  zoom: 10
+});
+
+// ---------- LOAD SEMUA GEOJSON ----------
+map.on('load', () => {
+
+  // === 1. Layer PGA ===
+  fetch('https://raw.githubusercontent.com/nadiaaurora/hazard-map/main/kp50y-0.2.geojson')
+    .then(r => r.json())
+    .then(data => {
+      map.addSource('pga', { type: 'geojson', data });
+      map.addLayer({
+        id: 'pga-layer',
+        type: 'circle',
+        source: 'pga',
+        paint: {
+          'circle-radius': 3,
+          'circle-stroke-width': 0,
+          'circle-color': [
+            'case',
+            ['<', ['get', 'mean-PGA_3'], 0.26], '#f2de00',
+            ['all', ['>=', ['get', 'mean-PGA_3'], 0.26], ['<=', ['get', 'mean-PGA_3'], 0.7]], '#f28d00',
+            ['>', ['get', 'mean-PGA_3'], 0.7], '#f20000',
+            '#cccccc'
+          ]
+        }
+      });
+    });
+
+  // === 2. Layer Bandara ===
+  fetch('https://raw.githubusercontent.com/nadiaaurora/hazard-map/main/bandara.geojson')
+    .then(r => r.json())
+    .then(data => {
+      map.addSource('bandara', { type: 'geojson', data });
+      map.addLayer({
+        id: 'bandara-layer',
+        type: 'symbol',
+        source: 'bandara',
+        layout: {
+          'icon-image': 'airport-15',
+          'icon-size': 1.2,
+          'text-field': ['get', 'Nama'],
+          'text-offset': [0, 1.2],
+          'text-size': 12,
+          'text-anchor': 'top'
+        },
+        paint: {
+          'text-color': '#1d3557'
+        }
+      });
+    });
+
+  // === 3. Layer Sesar Opak ===
+  fetch('https://raw.githubusercontent.com/nadiaaurora/hazard-map/main/opak.geojson')
+    .then(r => r.json())
+    .then(data => {
+      map.addSource('opak', { type: 'geojson', data });
+      map.addLayer({
+        id: 'opak-layer',
+        type: 'line',
+        source: 'opak',
+        paint: {
+          'line-color': '#d00000',
+          'line-width': 2,
+          'line-dasharray': [2, 2]
+        }
+      });
+    });
+
+  // === 4. Layer Waduk Sermo ===
+  fetch('https://raw.githubusercontent.com/nadiaaurora/hazard-map/main/batassermo.geojson')
+    .then(r => r.json())
+    .then(data => {
+      map.addSource('sermo', { type: 'geojson', data });
+      map.addLayer({
+        id: 'sermo-layer',
+        type: 'fill',
+        source: 'sermo',
+        paint: {
+          'fill-color': '#457b9d',
+          'fill-opacity': 0.5,
+          'fill-outline-color': '#1d3557'
+        }
+      });
+    });
+
+  // ========== TOGGLE LAYERS ==========
+  const toggles = [
+    { id: 'togglePGA', layer: 'pga-layer' },
+    { id: 'toggleBandara', layer: 'bandara-layer' },
+    { id: 'toggleOpak', layer: 'opak-layer' },
+    { id: 'toggleSermo', layer: 'sermo-layer' }
+  ];
+
+  toggles.forEach(t => {
+    document.getElementById(t.id).addEventListener('change', e => {
+      map.setLayoutProperty(
+        t.layer,
+        'visibility',
+        e.target.checked ? 'visible' : 'none'
+      );
+    });
+  });
+});
+</script>
+
+</body>
+</html>
